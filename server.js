@@ -4,6 +4,9 @@ const { Pool } = require("pg");
 const swaggerUi = require("swagger-ui-express");
 const swaggerDocument = require("./openapi.json");
 
+// NEW
+const supabase = require("./config/supabase");
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -182,6 +185,18 @@ app.delete("/tasks/:id", async (req, res) => {
 });
 
 // Start Server
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
+    try {
+        const { error } = await supabase.auth.getSession();
+
+        if (error) {
+            console.error("❌ Supabase initialization failed:", error.message);
+        } else {
+            console.log("✅ Supabase client initialized");
+        }
+    } catch (err) {
+        console.error("❌ Supabase error:", err.message);
+    }
+
     console.log(`🚀 Server running at http://localhost:${PORT}`);
 });
