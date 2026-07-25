@@ -141,20 +141,6 @@ todo-api/
 
 ---
 
-## Swagger UI Screenshot
-
-Add a screenshot of your Swagger UI here.
-
-Example:
-
-```
-docs/swagger.png
-```
-
-or simply drag the screenshot into the README on GitHub.
-
----
-
 ## Notes
 
 This API stores tasks only in memory. When the server restarts, all newly created tasks are lost because no database is connected.
