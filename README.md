@@ -1,26 +1,19 @@
-# Task API
+# Todo API
 
-A RESTful Task Management API built using **Node.js**, **Express.js**, **PostgreSQL**, **Docker**, and **Swagger UI**.
-
-This project demonstrates CRUD (Create, Read, Update, Delete) operations using a PostgreSQL database running inside Docker. The API automatically initializes the database schema, loads sample data, and provides interactive API documentation with Swagger UI.
+A secure RESTful Todo API built with **Node.js**, **Express.js**, **PostgreSQL**, and **Supabase Authentication**. This project demonstrates user authentication, JWT-based authorization, and protected CRUD operations following backend development best practices.
 
 ---
 
 ## Features
 
-- Create new tasks
-- Retrieve all tasks
-- Retrieve a task by ID
-- Update existing tasks
-- Delete tasks
-- Health check endpoint
-- Interactive Swagger UI documentation
-- PostgreSQL database integration
-- Docker Compose support
-- Automatic database initialization
-- Sample data seeding
-- Environment variable configuration
-- Proper HTTP status codes and validation
+- 🔐 User Registration (Sign Up)
+- 🔑 User Login with Supabase Authentication
+- 🛡️ JWT Bearer Token Authentication
+- ✅ Protected CRUD Operations for Tasks
+- 🗄️ PostgreSQL Database Integration
+- 📖 Interactive API Documentation with Swagger UI
+- ⚙️ Environment Variable Configuration using dotenv
+- 🚀 RESTful API Design
 
 ---
 
@@ -29,93 +22,102 @@ This project demonstrates CRUD (Create, Read, Update, Delete) operations using a
 - Node.js
 - Express.js
 - PostgreSQL
-- Docker
-- Docker Compose
-- Swagger UI Express
-- OpenAPI 3.0
+- Supabase Auth
+- Swagger UI
 - dotenv
-- Git & GitHub
+- Docker (PostgreSQL)
 
 ---
 
-# Installation
+## Project Structure
 
-## Clone the repository
+```
+todo-api/
+├── config/
+│   └── supabase.js
+├── middleware/
+│   └── authMiddleware.js
+├── routes/
+│   ├── auth.js
+│   └── tasks.js
+├── server.js
+├── package.json
+├── docker-compose.yml
+├── openapi.json
+├── README.md
+└── .env
+```
+
+---
+
+## API Endpoints
+
+### Authentication
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/auth/signup` | Register a new user |
+| POST | `/auth/login` | Login and receive JWT |
+
+### Protected Task Routes
+
+> All task routes require a valid Bearer Token.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/tasks` | Get all tasks |
+| GET | `/tasks/:id` | Get task by ID |
+| POST | `/tasks` | Create a task |
+| PUT | `/tasks/:id` | Update a task |
+| DELETE | `/tasks/:id` | Delete a task |
+
+---
+
+## Authentication
+
+After logging in, include the access token in every protected request.
+
+```http
+Authorization: Bearer <access_token>
+```
+
+---
+
+## Running the Project
+
+### Clone the repository
 
 ```bash
 git clone https://github.com/yuvanharshaj/todo-api.git
-```
-
-## Navigate into the project
-
-```bash
 cd todo-api
 ```
 
-## Install dependencies
+### Install dependencies
 
 ```bash
 npm install
 ```
 
----
+### Configure Environment Variables
 
-# Environment Variables
-
-Create a `.env` file in the project root.
-
-Example:
+Create a `.env` file:
 
 ```env
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=postgres
-DB_PASSWORD=dev
-DB_NAME=tasks
+SUPABASE_URL=your_supabase_url
+SUPABASE_KEY=your_supabase_anon_key
+DATABASE_URL=your_database_url
 PORT=3000
 ```
 
-You can also copy the provided template:
+### Start the server
 
 ```bash
-cp .env.example .env
-```
-
-(On Windows, simply copy `.env.example` and rename it to `.env`.)
-
----
-
-# Start PostgreSQL
-
-Start the PostgreSQL container using Docker Compose:
-
-```bash
-docker compose up -d
-```
-
-Verify the container is running:
-
-```bash
-docker ps
+npm start
 ```
 
 ---
 
-# Start the API
-
-```bash
-node server.js
-```
-
-The server runs at:
-
-```
-http://localhost:3000
-```
-
----
-
-# Swagger Documentation
+## API Documentation
 
 Swagger UI is available at:
 
@@ -125,92 +127,41 @@ http://localhost:3000/docs
 
 ---
 
-# API Endpoints
+## Testing
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | / | API Information |
-| GET | /health | Health Check |
-| GET | /tasks | Retrieve all tasks |
-| GET | /tasks/:id | Retrieve task by ID |
-| POST | /tasks | Create task |
-| PUT | /tasks/:id | Update task |
-| DELETE | /tasks/:id | Delete task |
+The API has been tested using:
 
----
+- Postman
+- Swagger UI
 
-# Example Request
+Verified features:
 
-Create a new task:
-
-```bash
-curl -X POST http://localhost:3000/tasks \
--H "Content-Type: application/json" \
--d "{\"title\":\"Learn PostgreSQL\"}"
-```
-
-Example Response:
-
-```json
-{
-    "id": 4,
-    "title": "Learn PostgreSQL",
-    "done": false
-}
-```
-
----
-
-# HTTP Status Codes
-
-| Code | Meaning |
-|------|---------|
-| 200 | Success |
-| 201 | Created |
-| 204 | Deleted Successfully |
-| 400 | Bad Request |
-| 404 | Resource Not Found |
-| 500 | Internal Server Error |
-
----
-
-# Project Structure
-
-```text
-todo-api/
-│
-├── images/
-│   └── swagger-ui.png
-├── server.js
-├── docker-compose.yml
-├── init.sql
-├── .env.example
-├── openapi.json
-├── package.json
-├── package-lock.json
-├── README.md
-└── .gitignore
-```
-
----
-
-# Future Improvements
-
+- User Signup
+- User Login
 - JWT Authentication
-- User Accounts
-- Pagination
-- Search & Filtering
-- Unit Testing
-- CI/CD Pipeline
+- Protected CRUD Operations
 
 ---
 
-# Author
+## Future Improvements
+
+- Refresh Token Support
+- Role-Based Access Control (RBAC)
+- Password Reset
+- Email Verification
+- Task Pagination & Filtering
+
+---
+
+## Author
 
 **Yuvan Harshaj**
 
-GitHub:
-https://github.com/yuvanharshaj
+- GitHub: https://github.com/yuvanharshaj
+- LinkedIn: https://www.linkedin.com/in/yuvanharshaj/
 
-LinkedIn:
-https://www.linkedin.com/in/yuvanharshaj
+---
+
+## License
+
+This project is developed for learning and backend engineering practice.
