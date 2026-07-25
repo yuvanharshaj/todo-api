@@ -3,7 +3,12 @@ const swaggerUi = require("swagger-ui-express");
 const swaggerDocument = require("./openapi.json");
 const sqlite3 = require("sqlite3").verbose();
 
-const db = new sqlite3.Database("tasks.db", (err) => {
+const app = express();
+const PORT = 3000;
+
+app.use(express.json());
+
+const db = new sqlite3.Database("./tasks.db", (err) => {
     if (err) {
         console.error("Database connection failed:", err.message);
     } else {
@@ -21,62 +26,41 @@ db.serialize(() => {
         )
     `);
 
-    db.get("SELECT COUNT(*) AS count FROM tasks", (err, row) => {
+    db.get(
+        "SELECT COUNT(*) AS count FROM tasks",
+        (err, row) => {
 
-        if (err) {
-            console.error(err.message);
-            return;
+            if (err) {
+                console.error(err.message);
+                return;
+            }
+
+            if (row.count === 0) {
+
+                const stmt = db.prepare(
+                    "INSERT INTO tasks (title, done) VALUES (?, ?)"
+                );
+
+                stmt.run("Learn Express", 0);
+                stmt.run("Build CRUD API", 0);
+                stmt.run("Submit FlyRank Assignment", 1);
+
+                stmt.finalize();
+
+                console.log("✅ Sample tasks inserted.");
+            }
+
         }
-
-        if (row.count === 0) {
-
-            const insert = db.prepare(
-                "INSERT INTO tasks (title, done) VALUES (?, ?)"
-            );
-
-            insert.run("Learn Express", 0);
-            insert.run("Build CRUD API", 0);
-            insert.run("Submit FlyRank Assignment", 1);
-
-            insert.finalize();
-
-            console.log("✅ Sample tasks inserted.");
-        }
-
-    });
+    );
 
 });
 
-const app = express();
-const PORT = 3000;
-
-app.use(express.json());
-
-// Temporary in-memory task list
-// (Will be removed in later stages)
-let tasks = [
-    {
-        id: 1,
-        title: "Learn Express",
-        done: false
-    },
-    {
-        id: 2,
-        title: "Build CRUD API",
-        done: false
-    },
-    {
-        id: 3,
-        title: "Submit FlyRank Assignment",
-        done: true
-    }
-];
-
-// Swagger Documentation
+// Swagger
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
-// Root endpoint
+// Root
 app.get("/", (req, res) => {
+
     res.json({
         name: "Task API",
         version: "1.0",
@@ -86,39 +70,46 @@ app.get("/", (req, res) => {
             "/docs"
         ]
     });
+
 });
 
-// Health check
+// Health
 app.get("/health", (req, res) => {
+
     res.json({
         status: "ok"
     });
+
 });
 
-// Get all tasks (SQLite)
+// GET all tasks
 app.get("/tasks", (req, res) => {
 
-    db.all("SELECT * FROM tasks", [], (err, rows) => {
+    db.all(
+        "SELECT * FROM tasks",
+        [],
+        (err, rows) => {
 
-        if (err) {
-            return res.status(500).json({
-                error: err.message
-            });
+            if (err) {
+                return res.status(500).json({
+                    error: err.message
+                });
+            }
+
+            const tasks = rows.map(task => ({
+                id: task.id,
+                title: task.title,
+                done: Boolean(task.done)
+            }));
+
+            res.json(tasks);
+
         }
-
-        const result = rows.map(task => ({
-            id: task.id,
-            title: task.title,
-            done: Boolean(task.done)
-        }));
-
-        res.json(result);
-
-    });
+    );
 
 });
 
-// Get task by ID (SQLite)
+// GET task by id
 app.get("/tasks/:id", (req, res) => {
 
     const id = parseInt(req.params.id);
@@ -150,7 +141,7 @@ app.get("/tasks/:id", (req, res) => {
     );
 
 });
-// Create a new task (still using in-memory array)
+// POST task
 app.post("/tasks", (req, res) => {
 
     const { title } = req.body;
@@ -161,68 +152,115 @@ app.post("/tasks", (req, res) => {
         });
     }
 
-    const newTask = {
-        id: tasks.length ? Math.max(...tasks.map(t => t.id)) + 1 : 1,
-        title: title.trim(),
-        done: false
-    };
+    db.run(
+        "INSERT INTO tasks (title, done) VALUES (?, ?)",
+        [title.trim(), 0],
+        function (err) {
 
-    tasks.push(newTask);
+            if (err) {
+                return res.status(500).json({
+                    error: err.message
+                });
+            }
 
-    res.status(201).json(newTask);
+            res.status(201).json({
+                id: this.lastID,
+                title: title.trim(),
+                done: false
+            });
+
+        }
+    );
 
 });
 
-// Update a task (still using in-memory array)
+// PUT task
 app.put("/tasks/:id", (req, res) => {
 
     const id = parseInt(req.params.id);
 
-    const task = tasks.find(task => task.id === id);
+    const { title, done } = req.body || {};
 
-    if (!task) {
-        return res.status(404).json({
-            error: `Task ${id} not found`
+    if (title !== undefined && !title.trim()) {
+        return res.status(400).json({
+            error: "Title is required"
         });
     }
 
-    const { title, done } = req.body;
+    db.get(
+        "SELECT * FROM tasks WHERE id = ?",
+        [id],
+        (err, row) => {
 
-    if (title !== undefined) {
+            if (err) {
+                return res.status(500).json({
+                    error: err.message
+                });
+            }
 
-        if (!title.trim()) {
-            return res.status(400).json({
-                error: "Title is required"
-            });
+            if (!row) {
+                return res.status(404).json({
+                    error: `Task ${id} not found`
+                });
+            }
+
+            const updatedTitle =
+                title !== undefined ? title.trim() : row.title;
+
+            const updatedDone =
+                done !== undefined ? (done ? 1 : 0) : row.done;
+
+            db.run(
+                "UPDATE tasks SET title = ?, done = ? WHERE id = ?",
+                [updatedTitle, updatedDone, id],
+                function (err) {
+
+                    if (err) {
+                        return res.status(500).json({
+                            error: err.message
+                        });
+                    }
+
+                    res.json({
+                        id,
+                        title: updatedTitle,
+                        done: Boolean(updatedDone)
+                    });
+
+                }
+            );
+
         }
-
-        task.title = title.trim();
-    }
-
-    if (done !== undefined) {
-        task.done = done;
-    }
-
-    res.json(task);
+    );
 
 });
 
-// Delete a task (still using in-memory array)
+// DELETE task
 app.delete("/tasks/:id", (req, res) => {
 
     const id = parseInt(req.params.id);
 
-    const index = tasks.findIndex(task => task.id === id);
+    db.run(
+        "DELETE FROM tasks WHERE id = ?",
+        [id],
+        function (err) {
 
-    if (index === -1) {
-        return res.status(404).json({
-            error: `Task ${id} not found`
-        });
-    }
+            if (err) {
+                return res.status(500).json({
+                    error: err.message
+                });
+            }
 
-    tasks.splice(index, 1);
+            if (this.changes === 0) {
+                return res.status(404).json({
+                    error: `Task ${id} not found`
+                });
+            }
 
-    res.status(204).send();
+            res.status(204).send();
+
+        }
+    );
 
 });
 

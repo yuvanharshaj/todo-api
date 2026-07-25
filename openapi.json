@@ -35,6 +35,9 @@
         "responses": {
           "201": {
             "description": "Task created"
+          },
+          "400": {
+            "description": "Invalid input"
           }
         }
       }
@@ -73,9 +76,23 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "title": "Updated Task",
+                "done": true
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Task updated"
+          },
+          "404": {
+            "description": "Task not found"
           }
         }
       },
@@ -94,6 +111,9 @@
         "responses": {
           "204": {
             "description": "Task deleted"
+          },
+          "404": {
+            "description": "Task not found"
           }
         }
       }
