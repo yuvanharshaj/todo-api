@@ -4,13 +4,17 @@ const { Pool } = require("pg");
 const swaggerUi = require("swagger-ui-express");
 const swaggerDocument = require("./openapi.json");
 
-// NEW
 const supabase = require("./config/supabase");
+const authRoutes = require("./routes/auth");
+const authenticateUser = require("./middleware/authMiddleware");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
+
+// Auth Routes
+app.use("/auth", authRoutes);
 
 // PostgreSQL Connection
 const pool = new Pool({
@@ -34,6 +38,8 @@ app.get("/", (req, res) => {
         name: "Task API",
         version: "1.0",
         endpoints: [
+            "/auth/signup",
+            "/auth/login",
             "/tasks",
             "/health",
             "/docs"
@@ -48,14 +54,23 @@ app.get("/health", (req, res) => {
     });
 });
 
+
+// ===============================
+// PROTECTED TASK ROUTES
+// ===============================
+
 // GET all tasks
-app.get("/tasks", async (req, res) => {
+app.get("/tasks", authenticateUser, async (req, res) => {
     try {
         const result = await pool.query(
             "SELECT * FROM tasks ORDER BY id"
         );
 
-        res.json(result.rows);
+        res.json({
+            loggedInUser: req.user.email,
+            tasks: result.rows
+        });
+
     } catch (err) {
         res.status(500).json({
             error: err.message
@@ -64,7 +79,7 @@ app.get("/tasks", async (req, res) => {
 });
 
 // GET task by id
-app.get("/tasks/:id", async (req, res) => {
+app.get("/tasks/:id", authenticateUser, async (req, res) => {
     try {
         const id = parseInt(req.params.id);
 
@@ -88,8 +103,8 @@ app.get("/tasks/:id", async (req, res) => {
     }
 });
 
-// POST task
-app.post("/tasks", async (req, res) => {
+// CREATE task
+app.post("/tasks", authenticateUser, async (req, res) => {
     try {
         const { title } = req.body;
 
@@ -100,7 +115,7 @@ app.post("/tasks", async (req, res) => {
         }
 
         const result = await pool.query(
-            "INSERT INTO tasks (title, done) VALUES ($1, $2) RETURNING *",
+            "INSERT INTO tasks (title, done) VALUES ($1,$2) RETURNING *",
             [title.trim(), false]
         );
 
@@ -113,8 +128,8 @@ app.post("/tasks", async (req, res) => {
     }
 });
 
-// PUT task
-app.put("/tasks/:id", async (req, res) => {
+// UPDATE task
+app.put("/tasks/:id", authenticateUser, async (req, res) => {
     try {
         const id = parseInt(req.params.id);
 
@@ -143,9 +158,9 @@ app.put("/tasks/:id", async (req, res) => {
 
         const result = await pool.query(
             `UPDATE tasks
-             SET title = $1,
-                 done = $2
-             WHERE id = $3
+             SET title=$1,
+                 done=$2
+             WHERE id=$3
              RETURNING *`,
             [updatedTitle, updatedDone, id]
         );
@@ -160,12 +175,12 @@ app.put("/tasks/:id", async (req, res) => {
 });
 
 // DELETE task
-app.delete("/tasks/:id", async (req, res) => {
+app.delete("/tasks/:id", authenticateUser, async (req, res) => {
     try {
         const id = parseInt(req.params.id);
 
         const result = await pool.query(
-            "DELETE FROM tasks WHERE id = $1 RETURNING *",
+            "DELETE FROM tasks WHERE id=$1 RETURNING *",
             [id]
         );
 
