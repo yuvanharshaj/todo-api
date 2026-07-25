@@ -1,13 +1,59 @@
 const express = require("express");
 const swaggerUi = require("swagger-ui-express");
 const swaggerDocument = require("./openapi.json");
+const sqlite3 = require("sqlite3").verbose();
+
+const db = new sqlite3.Database("tasks.db", (err) => {
+    if (err) {
+        console.error("Database connection failed:", err.message);
+    } else {
+        console.log("✅ Connected to SQLite database.");
+    }
+});
+
+db.serialize(() => {
+
+    db.run(`
+        CREATE TABLE IF NOT EXISTS tasks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            done INTEGER NOT NULL DEFAULT 0
+        )
+    `);
+
+    db.get("SELECT COUNT(*) AS count FROM tasks", (err, row) => {
+
+        if (err) {
+            console.error(err.message);
+            return;
+        }
+
+        if (row.count === 0) {
+
+            const insert = db.prepare(
+                "INSERT INTO tasks (title, done) VALUES (?, ?)"
+            );
+
+            insert.run("Learn Express", 0);
+            insert.run("Build CRUD API", 0);
+            insert.run("Submit FlyRank Assignment", 1);
+
+            insert.finalize();
+
+            console.log("✅ Sample tasks inserted.");
+        }
+
+    });
+
+});
 
 const app = express();
 const PORT = 3000;
 
 app.use(express.json());
 
-// In-memory task list
+// Temporary in-memory task list
+// (Will be removed in later stages)
 let tasks = [
     {
         id: 1,
@@ -49,28 +95,64 @@ app.get("/health", (req, res) => {
     });
 });
 
-// Get all tasks
+// Get all tasks (SQLite)
 app.get("/tasks", (req, res) => {
-    res.json(tasks);
+
+    db.all("SELECT * FROM tasks", [], (err, rows) => {
+
+        if (err) {
+            return res.status(500).json({
+                error: err.message
+            });
+        }
+
+        const result = rows.map(task => ({
+            id: task.id,
+            title: task.title,
+            done: Boolean(task.done)
+        }));
+
+        res.json(result);
+
+    });
+
 });
 
-// Get task by ID
+// Get task by ID (SQLite)
 app.get("/tasks/:id", (req, res) => {
+
     const id = parseInt(req.params.id);
 
-    const task = tasks.find(task => task.id === id);
+    db.get(
+        "SELECT * FROM tasks WHERE id = ?",
+        [id],
+        (err, row) => {
 
-    if (!task) {
-        return res.status(404).json({
-            error: `Task ${id} not found`
-        });
-    }
+            if (err) {
+                return res.status(500).json({
+                    error: err.message
+                });
+            }
 
-    res.json(task);
+            if (!row) {
+                return res.status(404).json({
+                    error: `Task ${id} not found`
+                });
+            }
+
+            res.json({
+                id: row.id,
+                title: row.title,
+                done: Boolean(row.done)
+            });
+
+        }
+    );
+
 });
-
-// Create a new task
+// Create a new task (still using in-memory array)
 app.post("/tasks", (req, res) => {
+
     const { title } = req.body;
 
     if (!title || !title.trim()) {
@@ -88,10 +170,12 @@ app.post("/tasks", (req, res) => {
     tasks.push(newTask);
 
     res.status(201).json(newTask);
+
 });
 
-// Update a task
+// Update a task (still using in-memory array)
 app.put("/tasks/:id", (req, res) => {
+
     const id = parseInt(req.params.id);
 
     const task = tasks.find(task => task.id === id);
@@ -105,6 +189,7 @@ app.put("/tasks/:id", (req, res) => {
     const { title, done } = req.body;
 
     if (title !== undefined) {
+
         if (!title.trim()) {
             return res.status(400).json({
                 error: "Title is required"
@@ -119,10 +204,12 @@ app.put("/tasks/:id", (req, res) => {
     }
 
     res.json(task);
+
 });
 
-// Delete a task
+// Delete a task (still using in-memory array)
 app.delete("/tasks/:id", (req, res) => {
+
     const id = parseInt(req.params.id);
 
     const index = tasks.findIndex(task => task.id === id);
@@ -136,6 +223,7 @@ app.delete("/tasks/:id", (req, res) => {
     tasks.splice(index, 1);
 
     res.status(204).send();
+
 });
 
 // Start server
