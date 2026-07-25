@@ -1,48 +1,56 @@
 # Task API
 
-A simple REST API built using Node.js and Express.
+A simple RESTful Task Management API built using Node.js and Express.js.
 
 ## Features
 
-- GET /
-- GET /health
-- GET /tasks
-- GET /tasks/:id
-- POST /tasks
-- 404 error handling
+- Get all tasks
+- Get task by ID
+- Create a task
+- Update a task
+- Delete a task
+- Health endpoint
+- Swagger API Documentation
+
+## Tech Stack
+
+- Node.js
+- Express.js
+- Swagger UI
+- OpenAPI 3.0
 
 ## Installation
 
 ```bash
+git clone https://github.com/yuvanharshaj/todo-api.git
+cd todo-api
 npm install
+npm start
 ```
 
-## Run
-
-```bash
-node server.js
-```
-
-Server runs on:
+Server runs at:
 
 ```
 http://localhost:3000
 ```
 
-## Test Endpoints
+Swagger Docs:
 
-- GET `/`
-- GET `/health`
-- GET `/tasks`
-- GET `/tasks/1`
-- POST `/tasks`
-
-Example POST body:
-
-```json
-{
-  "title": "Learn Node.js"
-}
+```
+http://localhost:3000/docs
 ```
 
-Built for the FlyRank Backend AI Engineering Internship.
+## API Endpoints
+
+| Method | Endpoint | Description |
+|---------|----------|-------------|
+| GET | /tasks | Get all tasks |
+| GET | /tasks/:id | Get task by ID |
+| POST | /tasks | Create task |
+| PUT | /tasks/:id | Update task |
+| DELETE | /tasks/:id | Delete task |
+| GET | /health | Health check |
+
+---
+
+Created by **Yuvan Harshaj**
