@@ -5,7 +5,7 @@ const PORT = 3000;
 
 app.use(express.json());
 
-// In-memory tasks
+// In-memory task list
 let tasks = [
     {
         id: 1,
@@ -29,11 +29,14 @@ app.get("/", (req, res) => {
     res.json({
         name: "Task API",
         version: "1.0",
-        endpoints: ["/tasks"]
+        endpoints: [
+            "/tasks",
+            "/health"
+        ]
     });
 });
 
-// Health endpoint
+// Health check
 app.get("/health", (req, res) => {
     res.json({
         status: "ok"
@@ -47,7 +50,6 @@ app.get("/tasks", (req, res) => {
 
 // Get task by ID
 app.get("/tasks/:id", (req, res) => {
-
     const id = parseInt(req.params.id);
 
     const task = tasks.find(task => task.id === id);
@@ -59,9 +61,31 @@ app.get("/tasks/:id", (req, res) => {
     }
 
     res.json(task);
-
 });
 
+// Create a new task
+app.post("/tasks", (req, res) => {
+
+    const { title } = req.body;
+
+    if (!title) {
+        return res.status(400).json({
+            error: "Title is required"
+        });
+    }
+
+    const newTask = {
+        id: tasks.length + 1,
+        title,
+        done: false
+    };
+
+    tasks.push(newTask);
+
+    res.status(201).json(newTask);
+});
+
+// Start server
 app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
